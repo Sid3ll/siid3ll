@@ -76,4 +76,48 @@
       }
     }, { passive: true });
   }
+
+  /* CARROUSEL D'ACCUEIL : ordre aléatoire, boucle continue */
+
+  const track = document.getElementById("marqueeTrack");
+
+  if (track) {
+    const items = [...track.children];
+
+    // Ne garde que les images qui se chargent vraiment
+    const check = (item) => new Promise((resolve) => {
+      const probe = new Image();
+      probe.onload = () => resolve(item);
+      probe.onerror = () => resolve(null);
+      probe.src = item.querySelector("img").src;
+    });
+
+    Promise.all(items.map(check)).then((list) => {
+      const ok = list.filter(Boolean);
+      if (!ok.length) return;
+
+      // Mélange (Fisher-Yates)
+      for (let i = ok.length - 1; i > 0; i--) {
+        const k = Math.floor(Math.random() * (i + 1));
+        [ok[i], ok[k]] = [ok[k], ok[i]];
+      }
+
+      const clone = (node) => node.cloneNode(true);
+
+      // Au moins 8 vignettes par moitié, pour éviter tout vide sur grand écran
+      let half = ok.map(clone);
+      while (half.length < 8) half = half.concat(ok.map(clone));
+
+      // Seconde moitié identique : elle rend la boucle invisible
+      const copy = half.map(clone);
+      copy.forEach((node) => {
+        node.setAttribute("aria-hidden", "true");
+        node.tabIndex = -1;
+      });
+
+      track.replaceChildren(...half, ...copy);
+      track.style.setProperty("--marquee-duration", half.length * 7 + "s");
+      track.classList.add("is-running");
+    });
+  }
 })();
